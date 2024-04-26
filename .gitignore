@@ -1,0 +1,5 @@
+/secrets/aws-key
+/secrets/aws-secret
+
+/terraform/.terraform/*
+/terraform/.terraform.lock.hcl
