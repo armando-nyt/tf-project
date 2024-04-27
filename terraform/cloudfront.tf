@@ -1,30 +1,39 @@
 # creates cloudfront  distribution to serve static site store in s3 bucket
 
-resource "aws_cloudfront_origin_access_control" "balde_cloudfront_access" {
-  name                              = "access-control-s3"
-  description                       = "Policy for static site through cloudfront"
-  origin_access_control_origin_type = "s3"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
+resource "aws_cloudfront_origin_access_identity" "balde_access_identity" {
+  comment = "Origin access identity for my bucket"
 }
+
+
+# resource "aws_cloudfront_origin_access_control" "balde_cloudfront_access" {
+#   name                              = "access-control-s3"
+#   description                       = "Policy for static site through cloudfront"
+#   origin_access_control_origin_type = "s3"
+#   signing_behavior                  = "always"
+#   signing_protocol                  = "sigv4"
+# }
 
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name              = aws_s3_bucket.balde.bucket_regional_domain_name
-    origin_access_control_id = aws_cloudfront_origin_access_control.balde_cloudfront_access.id
-    origin_id                = local.s3_origin_id
+    domain_name = aws_s3_bucket.balde.bucket_regional_domain_name
+    # origin_access_control_id = aws_cloudfront_origin_access_control.balde_cloudfront_access.id
+    origin_id = aws_s3_bucket.balde.bucket
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.balde_access_identity.cloudfront_access_identity_path
+    }
   }
 
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "Some comment"
-  default_root_object = aws_s3_object.balde_site.key
+  default_root_object = aws_s3_object.balde_site.content
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = local.s3_origin_id
+    target_origin_id = aws_s3_bucket.balde.bucket
 
     forwarded_values {
       query_string = false

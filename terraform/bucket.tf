@@ -13,13 +13,41 @@ resource "aws_s3_bucket" "balde" {
   }
 }
 
-resource "aws_s3_bucket_acl" "balde_acl" {
-  bucket = aws_s3_bucket.balde.id
-  acl    = "private"
-}
+# resource "aws_s3_bucket_acl" "balde_acl" {
+#   bucket = aws_s3_bucket.balde.id
+#   acl    = "private"
+# }
 
 resource "aws_s3_object" "balde_site" {
-  bucket = aws_s3_bucket.balde.bucket
-  key    = "balde-site"
-  source = "../assets/tf-project.html"
+  bucket       = aws_s3_bucket.balde.bucket
+  key          = "balde-site"
+  source       = "../assets/tf-project.html"
+  content_type = "text/html"
+}
+
+data "aws_iam_policy_document" "allow_access_to_static_site" {
+  statement {
+    sid = "SidAllowAccessToStaticSite"
+
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_cloudfront_origin_access_identity.balde_access_identity.iam_arn]
+    }
+
+    actions = [
+      "s3:GetObject",
+    ]
+
+    resources = [
+      "${aws_s3_bucket.balde.arn}/${aws_s3_object.balde_site.key}",
+    ]
+  }
+}
+
+resource "aws_s3_bucket_policy" "balde_policy" {
+  bucket = aws_s3_bucket.balde.id
+  policy = data.aws_iam_policy_document.allow_access_to_static_site.json
+
 }
